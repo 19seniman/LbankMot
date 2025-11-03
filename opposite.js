@@ -2,61 +2,56 @@ import 'dotenv/config';
 import axios from 'axios';
 
 // --- KONFIGURASI BOT NON-SENSITIF ---
-// URL API yang sudah ada
 const USER_URL = "https://motionmuse.ai/api/user";
-
-// Konfigurasi Klaim Harian
 const CLAIM_URL = "https://motionmuse.ai/subscription";
 const NEXT_ACTION = "7fadadc55bc463c843700871cf2558bb32417d8102";
-
 // ------------------------------------
 
-// Fungsi untuk mendapatkan data pengguna (menggunakan Bearer Token)
-async function fetchData() {
-    const AUTH_TOKEN = process.env.AUTH_TOKEN;
+// Ambil COOKIES dari .env
+const COOKIES = process.env.COOKIES;
 
-    if (!AUTH_TOKEN) {
-        console.error("🚨 ERROR: Variabel lingkungan AUTH_TOKEN tidak ditemukan. Cek file .env Anda.");
-        return; 
-    }
+// Pastikan cookies ada sebelum menjalankan fungsi apapun
+if (!COOKIES || COOKIES.length < 50) { 
+    console.error("🚨 ERROR: Variabel lingkungan COOKIES tidak ditemukan atau string terlalu pendek. Cek file .env Anda.");
+    process.exit(1); // Hentikan skrip
+}
+
+## 1. Fungsi Mendapatkan Data Pengguna (Menggunakan Cookies)
+
+async function fetchData() {
+    console.log("\n👤 Mencoba mengambil data pengguna menggunakan Cookies...");
 
     const headers = {
-        "Authorization": `Bearer ${AUTH_TOKEN}`, 
+        // Otorisasi sekarang menggunakan header Cookie
+        "cookie": COOKIES, 
         "accept": "*/*",
         "referer": "https://motionmuse.ai/explore",
     };
 
     try {
         const response = await axios.get(USER_URL, { headers });
-        console.log("\n✅ Status Permintaan User:", response.status);
-        console.log("Data Pengguna Diterima (Token Berhasil):", response.data);
+        console.log("✅ Status Permintaan User:", response.status);
+        console.log("Data Pengguna Diterima (Otentikasi Cookie Berhasil):", response.data);
     } catch (error) {
         console.error("\n❌ Gagal mengambil data pengguna:");
         if (error.response) {
-            console.error(`Status: ${error.response.status}`);
+            console.error(`Status: ${error.response.status} (401 atau 403 kemungkinan Cookie kedaluwarsa)`);
         } else {
             console.error(error.message);
         }
     }
 }
 
+---
 
-// Fungsi untuk Daily Claim Free Credit (menggunakan Cookies dari .env)
+## 2. Fungsi Daily Claim Free Credit (Menggunakan Cookies)
+
 async function claimDailyCredit() {
     console.log("\n🚀 Mencoba melakukan Daily Claim Free Credit...");
     
-    // --- MEMBACA DARI .env ---
-    const CLAIM_COOKIES = process.env.CLAIM_COOKIES;
-
-    if (!CLAIM_COOKIES || CLAIM_COOKIES.length < 50) { 
-        console.error("🚨 ERROR: Variabel lingkungan CLAIM_COOKIES tidak ditemukan atau string terlalu pendek. Cek file .env Anda.");
-        return;
-    }
-    // -------------------------
-
     const headers = {
-        // COOKIE sekarang dibaca dari process.env
-        "cookie": CLAIM_COOKIES, 
+        // Menggunakan Cookie yang sama
+        "cookie": COOKIES, 
         
         "accept": "text/x-component",
         "content-type": "text/plain;charset=UTF-8",
@@ -88,7 +83,7 @@ async function claimDailyCredit() {
     } catch (error) {
         console.error("\n❌ Gagal melakukan Daily Claim:");
         if (error.response) {
-            console.error(`Status: ${error.response.status}`);
+            console.error(`Status: ${error.response.status} (400 kemungkinan sudah diklaim hari ini)`);
             console.error(`Respons Error:`, error.response.data);
         } else {
             console.error(error.message);
